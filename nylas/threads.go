@@ -1,8 +1,10 @@
 package nylas
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -33,8 +35,14 @@ type ThreadResponse struct {
 	} `json:"data"`
 }
 
-func GetThread(messageId, grantId string) ThreadResponse {
-	requestURL := fmt.Sprintf("https://api.us.nylas.com/v3/grants/%s/threads/%s", grantId, messageId)
+type UpdateBody struct {
+	Unread  bool     `json:"unread"`
+	Starred bool     `json:"starred"`
+	Folders []string `json:"folders"`
+}
+
+func GetThread(threadId, grantId string) ThreadResponse {
+	requestURL := fmt.Sprintf("https://api.us.nylas.com/v3/grants/%s/threads/%s", grantId, threadId)
 	apiKey := os.Getenv("API_KEY")
 
 	req, err := http.NewRequest("GET", requestURL, nil)
@@ -50,7 +58,6 @@ func GetThread(messageId, grantId string) ThreadResponse {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
-	log.Println(res.StatusCode)
 
 	var threadResponse ThreadResponse
 	if err := json.NewDecoder(res.Body).Decode(&threadResponse); err != nil {
@@ -62,4 +69,35 @@ func GetThread(messageId, grantId string) ThreadResponse {
 	threadResponse.Data.LatestDraftOrMessage.Body = decodedBody
 
 	return threadResponse
+}
+
+func UpdateThread(threadId, grantId string, reqBody UpdateBody) {
+	requestURL := fmt.Sprintf("https://api.us.nylas.com/v3/grants/%s/threads/%s", grantId, threadId)
+	apiKey := os.Getenv("API_KEY")
+
+	payload, err := json.Marshal(reqBody)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req, err := http.NewRequest("PUT", requestURL, bytes.NewBuffer(payload))
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(body))
+	log.Println(res.StatusCode)
 }
