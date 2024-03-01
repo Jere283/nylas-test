@@ -1,11 +1,13 @@
 from nylas import Client
+from dotenv import dotenv_values
 
-apiKey = "nyk_v0_YEZVfhzQRYWIjpKLLJ74JkEDqLCl7RIPqFVOILxItlhjN2nPbYgyzOAaCKNFwKRy"
-grantId = "c0f2f708-567b-4a10-9b28-efad7d156283"
+config = dotenv_values(".env")
+
+
+apiKey = config.get("API_KEY")
+grantId = config.get("GRANT_ID")
 uri = "https://api.us.nylas.com"
 threadId = "18df121c8f5b46df"
-
-custom_headers = {"Accept": "message/rfc822"}
 
 nylas = Client(apiKey, uri)
 
